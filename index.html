@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人隨身電子病歷 / Personal Medical Record</title>
+    <style>
+        /* CSS 樣式設計 - 淡藍色系、明亮現代風格 */
+        :root {
+            --bg-color: #f0f8ff;
+            --card-bg: #ffffff;
+            --primary-blue: #4a90e2;
+            --light-blue: #e6f2ff;
+            --border-blue: #b3d8ff;
+            --text-main: #2c3e50;
+            --text-sub: #606f7b;
+            --shadow: 0 4px 12px rgba(74, 144, 226, 0.12);
+            --radius: 12px;
+            --accent-green: #2ecc71;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+        }
+
+        /* 頂部區域與語言切換器 */
+        header {
+            background-color: var(--card-bg);
+            padding: 20px 30px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            border-top: 5px solid var(--primary-blue);
+        }
+
+        .header-title h1 {
+            color: var(--primary-blue);
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+
+        .header-title p {
+            color: var(--text-sub);
+            font-size: 0.9rem;
+        }
+
+        .lang-select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-blue);
+            background-color: var(--light-blue);
+            color: var(--primary-blue);
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* 目錄導覽頁籤 (Table of Contents / Tabs) */
+        .toc-card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-blue);
+        }
+
+        .toc-title {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            margin-bottom: 10px;
+        }
+
+        .toc-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .toc-btn {
+            background-color: var(--light-blue);
+            color: var(--primary-blue);
+            border: 1px solid var(--border-blue);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .toc-btn:hover {
+            background-color: #d0e4ff;
+        }
+
+        .toc-btn.active {
+            background-color: var(--primary-blue);
+            color: #ffffff;
+            border-color: var(--primary-blue);
+        }
+
+        /* 病歷卡片分頁頁面 */
+        .page-content {
+            display: none;
+        }
+
+        .page-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(179, 216, 255, 0.4);
+        }
+
+        .card-title {
+            color: var(--primary-blue);
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--light-blue);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* 網格佈局 */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .info-item label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .info-item .value {
+            background-color: var(--bg-color);
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-blue);
+            font-size: 0.95rem;
+            min-height: 42px;
+            white-space: pre-line;
+        }
+
+        /* 緊急聯絡人特別樣式 */
+        .emergency-card {
+            background-color: #fff8f8;
+            border: 1px solid #ffcccc;
+        }
+
+        .emergency-card .card-title {
+            color: #d9534f;
+            border-bottom-color: #ffe6e6;
+        }
+
+        .emergency-card .value {
+            background-color: #fff;
+            border-color: #ffcccc;
+        }
+
+        /* 新增/編輯區塊樣式 */
+        .add-form-card {
+            background-color: #f7faff;
+            border: 2px dashed var(--border-blue);
+            padding: 20px;
+            border-radius: var(--radius);
+            margin-top: 15px;
+        }
+
+        .add-form-card h3 {
+            font-size: 1rem;
+            color: var(--primary-blue);
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 4px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-blue);
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        .btn-submit {
+            background-color: var(--accent-green);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-submit:hover {
+            background-color: #27ae60;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-sub);
+            font-size: 0.85rem;
+            margin-top: 30px;
+            padding-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 頁頭與語言切換 -->
+    <header>
+        <div class="header-title">
+            <h1 id="app-title">隨身電子病歷</h1>
+            <p id="app-subtitle">個人健康與醫療紀錄卡</p>
+        </div>
+        <div>
+            <select id="langSwitcher" class="lang-select" onchange="changeLanguage()">
+                <option value="zh">繁體中文</option>
+                <option value="en">English</option>
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+                <option value="vi">Tiếng Việt</option>
+            </select>
+        </div>
+    </header>
+
+    <!-- 目錄分頁選單 -->
+    <nav class="toc-card">
+        <div class="toc-title" id="t-toc">快速目錄選單 (點擊切換頁面)</div>
+        <div class="toc-nav">
+            <button class="toc-btn active" onclick="switchTab('sec-personal', this)" id="nav-personal">基本資料</button>
+            <button class="toc-btn" onclick="switchTab('sec-emergency', this)" id="nav-emergency">緊急聯絡人</button>
+            <button class="toc-btn" onclick="switchTab('sec-allergies', this)" id="nav-allergies">過敏史</button>
+            <button class="toc-btn" onclick="switchTab('sec-history', this)" id="nav-history">疾病與個人史</button>
+            <button class="toc-btn" onclick="switchTab('sec-surgeries', this)" id="nav-surgeries">手術史</button>
+            <button class="toc-btn" onclick="switchTab('sec-medications', this)" id="nav-medications">用藥史</button>
+            <button class="toc-btn" onclick="switchTab('sec-family', this)" id="nav-family">家族史</button>
+            <button class="toc-btn" onclick="switchTab('sec-vaccines', this)" id="nav-vaccines">疫苗史</button>
+        </div>
+    </nav>
+
+    <!-- 頁面 1: 個人基本資料 -->
+    <div class="page-content active" id="sec-personal">
+        <div class="card">
+            <h2 class="card-title"><span id="t-personal">個人基本資料</span></h2>
+            <div class="grid-3">
+                <div class="info-item">
+                    <label id="t-name">姓名</label>
+                    <div class="value">廖緗絨 (Hsian-Jung Liao)</div>
+                </div>
+                <div class="info-item">
+                    <label id="t-gender">性別</label>
+                    <div class="value" id="val-gender">女</div>
+                </div>
+                <div class="info-item">
+                    <label id="t-blood">血型</label>
+                    <div class="value">O 型 (Rh+)</div>
+                </div>
+                <div class="info-item">
+                    <label id="t-height">身高</label>
+                    <div class="value">164 cm</div>
+                </div>
+                <div class="info-item">
+                    <label id="t-weight">體重</label>
+                    <div class="value">50 kg</div>
+                </div>
+                <div class="info-item">
+                    <label id="t-dob">出生日期</label>
+                    <div class="value">2010-09-13</div>
+                </div>
+                <div class="info-item">
+                    <label id="t-passport">護照號碼</label>
+                    <div class="value">300123456</div>
+                </div>
+                <div class="info-item">
+                    <label id="t-nationality">國籍</label>
+                    <div class="value" id="val-nationality">台灣</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁面 2: 緊急聯絡人 -->
+    <div class="page-content" id="sec-emergency">
+        <div class="card emergency-card">
+            <h2 class="card-title"><span id="t-emergency">緊急聯絡人</span></h2>
+            <div class="grid-2">
+                <div class="info-item">
+                    <label id="t-contact-name">聯絡人姓名</label>
+                    <div class="value">廖慧真</div>
+                </div>
+                <div class="info-item">
+                    <label id="t-contact-phone">聯絡電話</label>
+                    <div class="value">0912-228-485</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁面 3: 過敏史 -->
+    <div class="page-content" id="sec-allergies">
+        <div class="card">
+            <h2 class="card-title"><span id="t-allergies">過敏史 (Allergies)</span></h2>
+            <div class="grid-2">
+                <div class="info-item">
+                    <label id="t-drug-allergy">藥物過敏</label>
+                    <div class="value" id="val-drug-allergy">無紀錄 / 待補充</div>
+                </div>
+                <div class="info-item">
+                    <label id="t-food-allergy">食物/其他過敏</label>
+                    <div class="value" id="val-food-allergy">無紀錄 / 待補充</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁面 4: 既往疾病史與個人史 -->
+    <div class="page-content" id="sec-history">
+        <div class="card">
+            <h2 class="card-title"><span id="t-history">既往疾病史與個人史</span></h2>
+            <div class="grid-2">
+                <div class="info-item">
+                    <label id="t-chronic">慢性疾病</label>
+                    <div class="value" id="val-chronic">無特殊疾病史</div>
+                </div>
+                <div class="info-item">
+                    <label id="t-habits">生活習慣 (菸酒史)</label>
+                    <div class="value" id="val-habits">無抽菸，無飲酒習慣</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁面 5: 手術史與住院史 -->
+    <div class="page-content" id="sec-surgeries">
+        <div class="card">
+            <h2 class="card-title"><span id="t-surgeries">手術與住院史</span></h2>
+            <div class="info-item">
+                <label id="t-surgery-list">過去手術</label>
+                <div class="value" id="val-surgeries">無手術紀錄</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁面 6: 目前用藥史 -->
+    <div class="page-content" id="sec-medications">
+        <div class="card">
+            <h2 class="card-title"><span id="t-medications">目前用藥史</span></h2>
+            <div class="info-item">
+                <label id="t-med-list">每日定期服用藥物</label>
+                <div class="value" id="val-meds">無定期服藥紀錄</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁面 7: 家族病史 -->
+    <div class="page-content" id="sec-family">
+        <div class="card">
+            <h2 class="card-title"><span id="t-family">家族病史</span></h2>
+            <div class="info-item">
+                <label id="t-family-list">家族遺傳疾病</label>
+                <div class="value" id="val-family">無特殊家族遺傳病史</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁面 8: 疫苗接種史 -->
+    <div class="page-content" id="sec-vaccines">
+        <div class="card">
+            <h2 class="card-title"><span id="t-vaccines">疫苗接種史</span></h2>
+            <div class="info-item">
+                <label id="t-vaccine-list">近期與重要疫苗</label>
+                <div class="value" id="val-vaccines">COVID-19 疫苗 (完整接種)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增 / 更新資料表單面板 -->
+    <div class="add-form-card">
+        <h3 id="t-add-title">➕ 新增 / 更新病歷資料</h3>
+        <div class="grid-2">
+            <div class="form-group">
+                <label id="t-select-category">選擇更新項目</label>
+                <select id="dataTarget" class="form-control">
+                    <option value="val-drug-allergy">藥物過敏 (Drug Allergy)</option>
+                    <option value="val-food-allergy">食物/其他過敏 (Food Allergy)</option>
+                    <option value="val-chronic">慢性疾病 (Chronic Conditions)</option>
+                    <option value="val-surgeries">手術史 (Surgeries)</option>
+                    <option value="val-meds">目前用藥 (Medications)</option>
+                    <option value="val-family">家族病史 (Family History)</option>
+                    <option value="val-vaccines">疫苗史 (Vaccines)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label id="t-input-content">輸入新增內容</label>
+                <input type="text" id="newDataInput" class="form-control" placeholder="例如：青黴素過敏 / 2023闌尾切除...">
+            </div>
+        </div>
+        <button class="btn-submit" onclick="appendMedicalData()" id="btn-add">新增至資料庫</button>
+    </div>
+
+    <footer>
+        <p id="t-footer">請妥善保管您的個人醫療隱私資料。</p>
+    </footer>
+</div>
+
+<script>
+    // 切換分頁函式
+    function switchTab(pageId, btnElement) {
+        const pages = document.querySelectorAll('.page-content');
+        pages.forEach(page => page.classList.remove('active'));
+
+        const buttons = document.querySelectorAll('.toc-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+
+        document.getElementById(pageId).classList.add('active');
+        btnElement.classList.add('active');
+    }
+
+    // 動態新增/更新內容
+    function appendMedicalData() {
+        const targetId = document.getElementById('dataTarget').value;
+        const inputField = document.getElementById('newDataInput');
+        const newValue = inputField.value.trim();
+
+        if (!newValue) {
+            alert('請輸入資料內容！');
+            return;
+        }
+
+        const targetDiv = document.getElementById(targetId);
+        
+        // 若原本只有「無紀錄」，直接替換；否則換行新增
+        if (targetDiv.innerText.includes('無紀錄') || targetDiv.innerText.includes('無特殊') || targetDiv.innerText.includes('None')) {
+            targetDiv.innerText = '• ' + newValue;
+        } else {
+            targetDiv.innerText += '\n• ' + newValue;
+        }
+
+        inputField.value = ''; // 清空輸入框
+        alert('資料新增成功！');
+    }
+
+    // 多語言字典檔
+    const i18n = {
+        zh: {
+            appTitle: "隨身電子病歷",
+            appSubtitle: "個人健康與醫療紀錄卡",
+            toc: "快速目錄選單 (點擊切換頁面)",
+            navPersonal: "基本資料",
+            navEmergency: "緊急聯絡",
+            navAllergies: "過敏史",
+            navHistory: "疾病個人史",
+            navSurgeries: "手術史",
+            navMedications: "用藥史",
+            navFamily: "家族史",
+            navVaccines: "疫苗史",
+            personal: "個人基本資料",
+            name: "姓名",
+            dob: "出生日期",
+            gender: "性別",
+            valGender: "女",
+            blood: "血型",
+            height: "身高",
+            weight: "體重",
+            passport: "護照號碼",
+            nationality: "國籍",
+            valNationality: "台灣",
+            emergency: "緊急聯絡人",
+            contactName: "聯絡人姓名",
+            contactPhone: "聯絡電話",
+            allergies: "過敏史",
+            drugAllergy: "藥物過敏",
+            foodAllergy: "食物/其他過敏",
+            history: "既往疾病史與個人史",
+            chronic: "慢性疾病",
+            habits: "生活習慣 (菸酒史)",
+            valHabits: "無抽菸，無飲酒習慣",
+            surgeries: "手術與住院史",
+            surgeryList: "過去手術",
+            medications: "目前用藥史",
+            medList: "每日定期服用藥物",
+            family: "家族病史",
+            familyList: "家族遺傳疾病",
+            vaccines: "疫苗接種史",
+            vaccineList: "近期與重要疫苗",
+            addTitle: "➕ 新增 / 更新病歷資料",
+            selectCat: "選擇更新項目",
+            inputContent: "輸入新增內容",
+            btnAdd: "新增至資料庫",
+            footer: "請妥善保管您的個人醫療隱私資料。"
+        },
+        en: {
+            appTitle: "Portable Medical Record",
+            appSubtitle: "Personal Health & Medical Card",
+            toc: "Quick Navigation (Click to switch view)",
+            navPersonal: "Personal Info",
+            navEmergency: "Emergency",
+            navAllergies: "Allergies",
+            navHistory: "History",
+            navSurgeries: "Surgeries",
+            navMedications: "Meds",
+            navFamily: "Family",
+            navVaccines: "Vaccines",
+            personal: "Personal Information",
+            name: "Full Name",
+            dob: "Date of Birth",
+            gender: "Gender",
+            valGender: "Female",
+            blood: "Blood Type",
+            height: "Height",
+            weight: "Weight",
+            passport: "Passport No.",
+            nationality: "Nationality",
+            valNationality: "Taiwan",
+            emergency: "Emergency Contact",
+            contactName: "Contact Person",
+            contactPhone: "Phone Number",
+            allergies: "Allergies",
+            drugAllergy: "Drug Allergies",
+            foodAllergy: "Food/Other Allergies",
+            history: "Medical & Personal History",
+            chronic: "Chronic Conditions",
+            habits: "Habits (Smoking/Alcohol)",
+            valHabits: "Non-smoker, Non-drinker",
+            surgeries: "Surgical & Hospitalization History",
+            surgeryList: "Past Surgeries",
+            medications: "Current Medications",
+            medList: "Daily Medications",
+            family: "Family Medical History",
+            familyList: "Hereditary Conditions",
+            vaccines: "Vaccination History",
+            vaccineList: "Vaccines Received",
+            addTitle: "➕ Add / Update Medical Record",
+            selectCat: "Select Category",
+            inputContent: "Enter New Information",
+            btnAdd: "Add to Profile",
+            footer: "Please keep your personal health data secure."
+        },
+        ja: {
+            appTitle: "攜帶用電子診療記錄",
+            appSubtitle: "個人健康・診斷記錄カード",
+            toc: "目次 (クリックで表示切替)",
+            navPersonal: "基本情報",
+            navEmergency: "緊急連絡",
+            navAllergies: "アレルギー",
+            navHistory: "既往歷",
+            navSurgeries: "手術歷",
+            navMedications: "服藥",
+            navFamily: "家族歷",
+            navVaccines: "ワクチン",
+            personal: "基本情報",
+            name: "氏名",
+            dob: "生年月日",
+            gender: "性別",
+            valGender: "女性",
+            blood: "血液型",
+            height: "身長",
+            weight: "體重",
+            passport: "旅券番号",
+            nationality: "國籍",
+            valNationality: "台灣",
+            emergency: "緊急連絡先",
+            contactName: "氏名",
+            contactPhone: "電話番号",
+            allergies: "アレルギー史",
+            drugAllergy: "醫藥品アレルギー",
+            foodAllergy: "食物・その他アレルギー",
+            history: "既往歷・生活習慣",
+            chronic: "持病・慢性疾患",
+            habits: "喫煙・飲酒歷",
+            valHabits: "非喫煙、非飲酒",
+            surgeries: "手術・入院歷",
+            surgeryList: "過去の手術",
+            medications: "服用中の藥",
+            medList: "定期常服藥",
+            family: "家族歷",
+            familyList: "家族の遺傳性疾患",
+            vaccines: "預防接種歷",
+            vaccineList: "接種隨時・主要ワクチン",
+            addTitle: "➕ 診療記録の追加・更新",
+            selectCat: "カテゴリを選択",
+            inputContent: "追加內容を入力",
+            btnAdd: "追加する",
+            footer: "個人醫療情報のリスク管理にご注意ください。"
+        },
+        ko: {
+            appTitle: "휴대용 전자의무기록",
+            appSubtitle: "개인 건강 및 의료 정보 카 드",
+            toc: "목차 (클릭하여 탭 전환)",
+            navPersonal: "인적사항",
+            navEmergency: "비상연락",
+            navAllergies: "알레르기",
+            navHistory: "병력",
+            navSurgeries: "수술이력",
+            navMedications: "복용약",
+            navFamily: "가족력",
+            navVaccines: "접종이력",
+            personal: "인적 사항",
+            name: "성명",
+            dob: "생년월일",
+            gender: "성별",
+            valGender: "여성",
+            blood: "혈액형",
+            height: "신장",
+            weight: "체중",
+            passport: "여권 번호",
+            nationality: "국적",
+            valNationality: "대만",
+            emergency: "비상 연락처",
+            contactName: "성명",
+            contactPhone: "전화번호",
+            allergies: "알레르기 이력",
+            drugAllergy: "약물 알레르기",
+            foodAllergy: "음식 및 기타 알레르기",
+            history: "기저질환 및 생활습관",
+            chronic: "만성 질환",
+            habits: "흡연 및 음주",
+            valHabits: "비흡연, 비음주",
+            surgeries: "수술 및 입원 이력",
+            surgeryList: "수술 이력",
+            medications: "현재 복용 약물",
+            medList: "정기 복용 약물",
+            family: "가족력",
+            familyList: "가족 유전 질환",
+            vaccines: "예방접종 이력",
+            vaccineList: "주요 접종 이력",
+            addTitle: "➕ 의료 기록 추가 / 업데이트",
+            selectCat: "카테고리 선택",
+            inputContent: "내용 입력",
+            btnAdd: "기록 추가",
+            footer: "개인 의료 정보 보호에 유의하시기 바랍니다."
+        },
+        vi: {
+            appTitle: "Hồ Sơ Y Tế Cá Nhân Di Động",
+            appSubtitle: "Thẻ Sức Khỏe & Lịch Sử Y Tế",
+            toc: "Mục Lục (Nhấp để chuyển trang)",
+            navPersonal: "Cá Nhân",
+            navEmergency: "Khẩn Cấp",
+            navAllergies: "Dị Ứng",
+            navHistory: "Tiền Sử",
+            navSurgeries: "Phẫu Thuật",
+            navMedications: "Thuốc",
+            navFamily: "Gia Đình",
+            navVaccines: "Tiêm Chủng",
+            personal: "Thông Tin Cá Nhân",
+            name: "Họ và Tên",
+            dob: "Ngày Sinh",
+            gender: "Giới Tính",
+            valGender: "Nữ",
+            blood: "Nhóm Máu",
+            height: "Chiều Cao",
+            weight: "Cân Nặng",
+            passport: "Số Hộ Chiếu",
+            nationality: "Quốc Tịch",
+            valNationality: "Đài Loan",
+            emergency: "Liên Hệ Khẩn Cấp",
+            contactName: "Họ Tên Người Liên Hệ",
+            contactPhone: "Số Điện Thoại",
+            allergies: "Tiền Sử Dị Ứng",
+            drugAllergy: "Dị Ứng Thuốc",
+            foodAllergy: "Dị Ứng Thực Phẩm / Khác",
+            history: "Tiền Sử Bệnh & Thói Quen",
+            chronic: "Bệnh Mãn Tính",
+            habits: "Thói Quen (Thuốc lá/Rượu)",
+            valHabits: "Không hút thuốc, Không uống rượu",
+            surgeries: "Tiền Sử Phẫu Thuật & Nhập Viện",
+            surgeryList: "Các Phẫu Thuật Đã Làm",
+            medications: "Thuốc Đang Sử Dụng",
+            medList: "Thuốc Uống Hàng Ngày",
+            family: "Tiền Sử Gia Đình",
+            familyList: "Bệnh Di Truyền",
+            vaccines: "Tiền Sử Tiêm Chủng",
+            vaccineList: "Các Mũi Tiêm Quan Trọng",
+            addTitle: "➕ Thêm / Cập Nhật Hồ Sơ Y Tế",
+            selectCat: "Chọn Danh Mục",
+            inputContent: "Nhập Thông Tin Mới",
+            btnAdd: "Thêm Vào Hồ Sơ",
+            footer: "Vui lòng bảo mật thông tin y tế cá nhân của bạn."
+        }
+    };
+
+    // 切換語言處理函式
+    function changeLanguage() {
+        const lang = document.getElementById('langSwitcher').value;
+        const data = i18n[lang];
+
+        if (!data) return;
+
+        // 標題與目錄
+        document.getElementById('app-title').innerText = data.appTitle;
+        document.getElementById('app-subtitle').innerText = data.appSubtitle;
+        document.getElementById('t-toc').innerText = data.toc;
+        document.getElementById('nav-personal').innerText = data.navPersonal;
+        document.getElementById('nav-emergency').innerText = data.navEmergency;
+        document.getElementById('nav-allergies').innerText = data.navAllergies;
+        document.getElementById('nav-history').innerText = data.navHistory;
+        document.getElementById('nav-surgeries').innerText = data.navSurgeries;
+        document.getElementById('nav-medications').innerText = data.navMedications;
+        document.getElementById('nav-family').innerText = data.navFamily;
+        document.getElementById('nav-vaccines').innerText = data.navVaccines;
+
+        // 各區塊標題與固定欄位
+        document.getElementById('t-personal').innerText = data.personal;
+        document.getElementById('t-name').innerText = data.name;
+        document.getElementById('t-dob').innerText = data.dob;
+        document.getElementById('t-gender').innerText = data.gender;
+        document.getElementById('val-gender').innerText = data.valGender;
+        document.getElementById('t-blood').innerText = data.blood;
+        document.getElementById('t-height').innerText = data.height;
+        document.getElementById('t-weight').innerText = data.weight;
+        document.getElementById('t-passport').innerText = data.passport;
+        document.getElementById('t-nationality').innerText = data.nationality;
+        document.getElementById('val-nationality').innerText = data.valNationality;
+        document.getElementById('t-emergency').innerText = data.emergency;
+        document.getElementById('t-contact-name').innerText = data.contactName;
+        document.getElementById('t-contact-phone').innerText = data.contactPhone;
+        document.getElementById('t-allergies').innerText = data.allergies;
+        document.getElementById('t-drug-allergy').innerText = data.drugAllergy;
+        document.getElementById('t-food-allergy').innerText = data.foodAllergy;
+        document.getElementById('t-history').innerText = data.history;
+        document.getElementById('t-chronic').innerText = data.chronic;
+        document.getElementById('t-habits').innerText = data.habits;
+        document.getElementById('val-habits').innerText = data.valHabits;
+        document.getElementById('t-surgeries').innerText = data.surgeries;
+        document.getElementById('t-surgery-list').innerText = data.surgeryList;
+        document.getElementById('t-medications').innerText = data.medications;
+        document.getElementById('t-med-list').innerText = data.medList;
+        document.getElementById('t-family').innerText = data.family;
+        document.getElementById('t-family-list').innerText = data.familyList;
+        document.getElementById('t-vaccines').innerText = data.vaccines;
+        document.getElementById('t-vaccine-list').innerText = data.vaccineList;
+
+        // 表單區域
+        document.getElementById('t-add-title').innerText = data.addTitle;
+        document.getElementById('t-select-category').innerText = data.selectCat;
+        document.getElementById('t-input-content').innerText = data.inputContent;
+        document.getElementById('btn-add').innerText = data.btnAdd;
+        document.getElementById('t-footer').innerText = data.footer;
+    }
+</script>
+
+</body>
+</html>
